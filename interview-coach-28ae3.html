@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>PM Interview Simulator</title>
+</head>
+<body>
+  <script>
+    const entered = localStorage.getItem("access_granted");
+    if (!entered) {
+      const password = prompt("🔐 Enter access password:");
+      if (password !== "TENNILLE2025") {
+        alert("❌ Incorrect password.");
+        window.location.href = "/verify.html";
+      } else {
+        localStorage.setItem("access_granted", true);
+      }
+    }
+  </script>
+
+  <h1>🎙️ PM Interview Simulator</h1>
+  <p>Click below to begin your voice session.</p>
+  <button onclick="startRecording()">Start Speaking</button>
+  <p id="transcript">Transcript: ...</p>
+  <p id="gpt-response">GPT: ...</p>
+
+  <script src="script.js"></script>
+</body>
+</html>
