@@ -68,5 +68,5 @@ async function startRecording() {
   };
 
   mediaRecorder.start();
-  setTimeout(() => mediaRecorder.stop(), 5000); // Record for 5 seconds
+  setTimeout(() => mediaRecorder.stop(), 10000); // Record for 10 seconds
 }
