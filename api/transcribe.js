@@ -21,14 +21,20 @@ export default async function handler(req, res) {
   const form = new formidable.IncomingForm();
 
   form.parse(req, async (err, fields, files) => {
-    if (err || !files.file) {
-      console.error("Error parsing form or missing file:", err);
-      return res.status(400).json({ error: "No audio file found" });
+    if (err) {
+      console.error("Form parse error:", err);
+      return res.status(400).json({ error: "Form parsing failed" });
     }
 
-    const file = files.file[0];
+    // ✅ Defensive check (Point 2)
+    if (!files || !files.file || !files.file[0]) {
+      console.error("No file received:", files);
+      return res.status(400).json({ error: "No file uploaded" });
+    }
 
     try {
+      // ✅ Correct file reference and buffer read (Point 3)
+      const file = files.file[0];
       const buffer = fs.readFileSync(file.filepath);
 
       const formData = new FormData();
@@ -50,14 +56,14 @@ export default async function handler(req, res) {
       const data = await response.json();
 
       if (!data.text) {
-        console.error("OpenAI Whisper API returned no text:", data);
+        console.error("Whisper API returned no text:", data);
         return res.status(500).json({ text: "" });
       }
 
       res.status(200).json({ text: data.text });
     } catch (error) {
       console.error("Transcription error:", error);
-      res.status(500).json({ error: "Server error" });
+      res.status(500).json({ error: "Server error during transcription" });
     }
   });
 }
