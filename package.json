@@ -1,7 +1,6 @@
 {
-  "name": "voice-pm-interview-coach",
-  "version": "1.0.0",
+  "type": "module",
   "dependencies": {
-    "formidable": "^3.5.0"
+    "form-data": "^4.0.0"
   }
 }
