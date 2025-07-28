@@ -1,48 +1,43 @@
-import formidable from "formidable";
-import fs from "fs";
-import path from "path";
+import FormData from 'form-data';
+import fs from 'fs';
+import path from 'path';
 
 export const config = {
   api: {
-    bodyParser: false,
-  },
+    bodyParser: false
+  }
 };
 
 export default async function handler(req, res) {
-  const form = new formidable.IncomingForm({ keepExtensions: true });
-
-  form.parse(req, async (err, fields, files) => {
-    if (err) {
-      console.error("Form parse error:", err);
-      return res.status(500).json({ error: "Form parsing failed" });
+  try {
+    const chunks = [];
+    for await (const chunk of req) {
+      chunks.push(chunk);
     }
 
-    const audioFile = files.file;
-    if (!audioFile) {
-      return res.status(400).json({ error: "No audio file uploaded" });
-    }
+    const buffer = Buffer.concat(chunks);
 
-    try {
-      const fileStream = fs.createReadStream(audioFile.filepath);
+    // Save the uploaded audio to a temp file
+    const tempFilePath = path.join('/tmp', `audio-${Date.now()}.webm`);
+    fs.writeFileSync(tempFilePath, buffer);
 
-      const response = await fetch("https://api.openai.com/v1/audio/transcriptions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.PM_GPT_Key}`,
-        },
-        body: (() => {
-          const formData = new FormData();
-          formData.append("file", fileStream, audioFile.originalFilename);
-          formData.append("model", "whisper-1");
-          return formData;
-        })(),
-      });
+    const formData = new FormData();
+    formData.append('file', fs.createReadStream(tempFilePath));
+    formData.append('model', 'whisper-1');
 
-      const data = await response.json();
-      res.status(200).json(data);
-    } catch (err) {
-      console.error("Transcription error:", err);
-      res.status(500).json({ error: "Transcription failed" });
-    }
-  });
+    const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.PM_GPT_Key}`,
+        ...formData.getHeaders()
+      },
+      body: formData
+    });
+
+    const data = await response.json();
+    res.status(200).json(data);
+  } catch (error) {
+    console.error('Error in /api/transcribe:', error);
+    res.status(500).json({ error: 'Transcription failed' });
+  }
 }
