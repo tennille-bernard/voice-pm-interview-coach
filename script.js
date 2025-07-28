@@ -25,4 +25,48 @@ async function startRecording() {
       return;
     }
 
-    const
+    const transcript = await transcriptRes.json();
+    document.getElementById("transcript").innerText = `Transcript: ${transcript.text}`;
+
+    // Step 2: Validate transcript
+    if (!transcript.text || typeof transcript.text !== "string") {
+      console.error("Transcript is missing or invalid:", transcript);
+      alert("Transcript failed. Please try again.");
+      return;
+    }
+
+    // Step 3: Send transcript to GPT via serverless API
+    const chatResponse = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages: [{ role: "user", content: transcript.text }],
+      }),
+    });
+
+    if (!chatResponse.ok) {
+      const errorText = await chatResponse.text();
+      console.error("Chat API error:", errorText);
+      alert("Failed to get a GPT response. Please check your API key or try again.");
+      return;
+    }
+
+    const chatData = await chatResponse.json();
+
+    if (!chatData.choices || !chatData.choices[0]) {
+      console.error("Chat API returned no choices:", chatData);
+      alert("Something went wrong generating the response. Please try again.");
+      return;
+    }
+
+    const reply = chatData.choices[0].message.content;
+    document.getElementById("gpt-response").innerText = `GPT: ${reply}`;
+
+    // Step 4: Speak the GPT response
+    const utterance = new SpeechSynthesisUtterance(reply);
+    speechSynthesis.speak(utterance);
+  };
+
+  mediaRecorder.start();
+  setTimeout(() => mediaRecorder.stop(), 5000); // Record for 5 seconds
+}
