@@ -1,6 +1,15 @@
-let threadId = null;
+""let threadId = null;
+let questionCount = 0;
 
-async function startRecording() {
+async function startRecording(reset = false) {
+  if (reset) {
+    threadId = null;
+    questionCount = 0;
+    document.getElementById("question-number").innerText = "";
+    document.getElementById("transcript").innerText = "";
+    document.getElementById("gpt-response").innerText = "";
+  }
+
   const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
   const mediaRecorder = new MediaRecorder(stream);
   const chunks = [];
@@ -14,7 +23,6 @@ async function startRecording() {
     const formData = new FormData();
     formData.append("file", audioFile);
 
-    // Step 1: Whisper transcription
     const transcriptRes = await fetch("/api/transcribe", {
       method: "POST",
       body: formData
@@ -28,6 +36,7 @@ async function startRecording() {
     }
 
     const transcript = await transcriptRes.json();
+    document.getElementById("transcript").innerText = `Transcript: ${transcript.text}`;
 
     if (!transcript.text || typeof transcript.text !== "string") {
       console.error("Transcript is missing or invalid:", transcript);
@@ -35,15 +44,13 @@ async function startRecording() {
       return;
     }
 
-    document.getElementById("transcript").innerText = `Transcript: ${transcript.text}`;
-
-    // Step 2: Send transcript to Assistant
     const chatResponse = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        message: transcript.text,
-        threadId: threadId // may be null the first time
+        messages: [{ role: "user", content: transcript.text }],
+        threadId,
+        reset
       })
     });
 
@@ -56,21 +63,19 @@ async function startRecording() {
 
     const chatData = await chatResponse.json();
 
-    if (!chatData.reply) {
-      console.error("Chat API returned no reply:", chatData);
+    if (!chatData.choices || !chatData.choices[0]) {
+      console.error("Chat API returned no choices:", chatData);
       alert("Something went wrong generating the response. Please try again.");
       return;
     }
 
-    // Save threadId for future use
-    if (chatData.threadId && !threadId) {
-      threadId = chatData.threadId;
-    }
+    const reply = chatData.choices[0].message.content;
+    threadId = chatData.threadId;
+    questionCount++;
 
-    const reply = chatData.reply;
+    document.getElementById("question-number").innerText = `Q${questionCount}`;
     document.getElementById("gpt-response").innerText = `GPT: ${reply}`;
 
-    // Speak it back
     const utterance = new SpeechSynthesisUtterance(reply);
     speechSynthesis.speak(utterance);
   };
@@ -78,3 +83,6 @@ async function startRecording() {
   mediaRecorder.start();
   setTimeout(() => mediaRecorder.stop(), 5000); // 5s clip
 }
+
+// Reset interview button handler
+document.getElementById("reset-button").addEventListener("click", () => startRecording(true));
