@@ -1,14 +1,47 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Voice PM Interview Coach</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PM Interview Coach (Voice)</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 1.5rem;
+      background-color: #f4f4f4;
+    }
+    button {
+      padding: 0.75rem 1.25rem;
+      font-size: 1rem;
+      margin-right: 1rem;
+      cursor: pointer;
+    }
+    #output {
+      margin-top: 2rem;
+      background: #fff;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+    #question-count {
+      font-weight: bold;
+      margin-top: 1rem;
+      font-size: 1.2rem;
+    }
+  </style>
 </head>
 <body>
-  <h1>🎤 Speak to Your Interview Coach</h1>
+  <h1>Product Manager Interview Simulator (Voice)</h1>
+  <p>Click below to start a mock interview. Speak your answer out loud.</p>
+
   <button onclick="startRecording()">Start Speaking</button>
-  <p id="transcript">Transcript: ...</p>
-  <p id="gpt-response">GPT: ...</p>
+  <button onclick="resetInterview()">Reset Interview</button>
+
+  <div id="output">
+    <p id="question-count">Q1</p>
+    <p id="transcript"><strong>Transcript:</strong></p>
+    <p id="gpt-response"><strong>GPT:</strong></p>
+  </div>
 
   <script src="script.js"></script>
 </body>
