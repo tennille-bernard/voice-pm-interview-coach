@@ -1,53 +1,74 @@
+// Updated chat.js with reset and question count support
+
 import OpenAI from "openai";
+import { v4 as uuidv4 } from "uuid";
 
 const openai = new OpenAI({ apiKey: process.env.PM_GPT_Key });
 
 let threadId = null;
-let questionNumber = 1;
+let questionCount = 0;
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  try {
-    const { messages, reset } = req.body;
+  const { messages, reset } = req.body;
 
-    if (reset || !threadId) {
-      const thread = await openai.beta.threads.create();
-      threadId = thread.id;
-      questionNumber = 1;
+  try {
+    // Reset if flagged
+    if (reset) {
+      threadId = null;
+      questionCount = 0;
     }
 
-    const message = await openai.beta.threads.messages.create(threadId, {
+    // Create a thread if not already started
+    if (!threadId) {
+      const thread = await openai.beta.threads.create();
+      threadId = thread.id;
+    }
+
+    // Append new message
+    await openai.beta.threads.messages.create(threadId, {
       role: "user",
       content: messages[messages.length - 1].content,
     });
 
+    // Start a run
     const run = await openai.beta.threads.runs.create(threadId, {
-      assistant_id: process.env.ASSISTANT_ID,
+      assistant_id: process.env.PM_GPT_Assistant_ID,
     });
 
+    // Poll for completion
     let runStatus;
     do {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 1500));
       runStatus = await openai.beta.threads.runs.retrieve(threadId, run.id);
-    } while (runStatus.status !== "completed");
+    } while (runStatus.status !== "completed" && runStatus.status !== "failed");
 
-    const responseMessages = await openai.beta.threads.messages.list(threadId);
-    const lastMessage = responseMessages.data.find(m => m.role === "assistant");
+    if (runStatus.status === "failed") {
+      return res.status(500).json({ error: "Assistant run failed" });
+    }
+
+    // Fetch updated messages
+    const messagesResponse = await openai.beta.threads.messages.list(threadId);
+    const lastMessage = messagesResponse.data.find(msg => msg.role === "assistant");
+
+    // Track question number for display
+    questionCount++;
 
     res.status(200).json({
       choices: [
         {
           message: {
-            content: `Question ${questionNumber++}: ${lastMessage.content[0].text.value}`,
+            content: `Q${questionCount}: ${lastMessage.content[0].text.value}`,
           },
         },
       ],
+      questionNumber: questionCount,
     });
   } catch (error) {
     console.error("Assistants API error:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+    res.status(500).json({ error: "Server error" });
   }
 }
