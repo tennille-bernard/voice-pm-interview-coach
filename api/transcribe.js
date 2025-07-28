@@ -6,7 +6,7 @@ export const config = {
   },
 };
 
-import formidable from "formidable";
+import { IncomingForm } from "formidable";
 import fs from "fs";
 import FormData from "form-data";
 import fetch from "node-fetch";
@@ -18,7 +18,9 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const form = new formidable.IncomingForm();
+  const form = new IncomingForm({
+    maxFileSize: 20 * 1024 * 1024, // Optional safety
+  });
 
   form.parse(req, async (err, fields, files) => {
     if (err) {
@@ -35,7 +37,14 @@ export default async function handler(req, res) {
     try {
       // ✅ Correct file reference and buffer read (Point 3)
       const file = files.file[0];
-      const buffer = fs.readFileSync(file.filepath);
+      console.log("Checking file at path:", file.filepath);
+      if (!fs.existsSync(file.filepath)) {
+        console.error("Uploaded file not found on server:", file.filepath);
+        return res.status(500).json({ error: "File not found on server" });
+      }
+
+const buffer = fs.readFileSync(file.filepath);
+
 
       const formData = new FormData();
       formData.append("file", buffer, {
