@@ -1,3 +1,5 @@
+// /api/transcribe.js
+
 export const config = {
   api: {
     bodyParser: false,
@@ -8,9 +10,9 @@ import fs from "fs";
 import FormData from "form-data";
 import fetch from "node-fetch";
 
-// ⬇️ ESM-safe dynamic import of formidable
-const formidable = await import("formidable");
-const IncomingForm = formidable.default;
+// Dynamically import formidable for ESM compatibility
+const formidableModule = await import("formidable");
+const IncomingForm = formidableModule.default;
 
 const openaiApiKey = process.env.PM_GPT_Key;
 
@@ -23,12 +25,12 @@ export default async function handler(req, res) {
 
   form.parse(req, async (err, fields, files) => {
     if (err) {
-      console.error("Form parsing error:", err);
-      return res.status(400).json({ error: "Failed to parse form data" });
+      console.error("Form parse error:", err);
+      return res.status(400).json({ error: "Failed to parse uploaded file" });
     }
 
     if (!files || !files.file || !files.file[0]) {
-      console.error("No file received:", files);
+      console.error("No file uploaded:", files);
       return res.status(400).json({ error: "No file uploaded" });
     }
 
@@ -43,7 +45,7 @@ export default async function handler(req, res) {
       });
       formData.append("model", "whisper-1");
 
-      const response = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+      const whisperRes = await fetch("https://api.openai.com/v1/audio/transcriptions", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${openaiApiKey}`,
@@ -52,16 +54,16 @@ export default async function handler(req, res) {
         body: formData,
       });
 
-      const data = await response.json();
+      const whisperData = await whisperRes.json();
 
-      if (!data.text) {
-        console.error("Whisper API returned no text:", data);
+      if (!whisperData.text) {
+        console.error("OpenAI Whisper returned empty response:", whisperData);
         return res.status(500).json({ text: "" });
       }
 
-      res.status(200).json({ text: data.text });
+      res.status(200).json({ text: whisperData.text });
     } catch (error) {
-      console.error("Transcription error:", error);
+      console.error("Transcription processing error:", error);
       res.status(500).json({ error: "Server error during transcription" });
     }
   });
