@@ -9,7 +9,7 @@ export const config = {
 import fs from "fs";
 import FormData from "form-data";
 import fetch from "node-fetch";
-import { IncomingForm } from "formidable"; // ✅ now valid with 2.1.1
+import { IncomingForm } from "formidable"; // Only works with formidable@2.1.1
 
 const openaiApiKey = process.env.PM_GPT_Key;
 
@@ -26,14 +26,16 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Failed to parse uploaded file" });
     }
 
-    if (!files || !files.file) {
-      console.error("No file uploaded:", files);
-      return res.status(400).json({ error: "No file uploaded" });
-    }
-
     try {
-      const file = files.file;
-      const buffer = fs.readFileSync(file.path || file.filepath);
+      const file = Array.isArray(files.file) ? files.file[0] : files.file;
+      const filePath = file.filepath || file.path;
+
+      if (!filePath) {
+        console.error("No valid file path found in uploaded file object:", file);
+        return res.status(400).json({ error: "Invalid file path" });
+      }
+
+      const buffer = fs.readFileSync(filePath);
 
       const formData = new FormData();
       formData.append("file", buffer, {
@@ -59,6 +61,7 @@ export default async function handler(req, res) {
       }
 
       res.status(200).json({ text: whisperData.text });
+
     } catch (error) {
       console.error("Transcription processing error:", error);
       res.status(500).json({ error: "Server error during transcription" });
