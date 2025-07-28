@@ -11,7 +11,7 @@ import FormData from "form-data";
 import fetch from "node-fetch";
 import { IncomingForm } from "formidable"; // Only works with formidable@2.1.1
 
-const openaiApiKey = process.env.PM_GPT_Key;
+const openaiApiKey = process.env.PM_GPT_KEY;
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
