@@ -1,15 +1,16 @@
-// /api/transcribe.js
-
 export const config = {
   api: {
     bodyParser: false,
   },
 };
 
-import { IncomingForm } from "formidable";
 import fs from "fs";
 import FormData from "form-data";
 import fetch from "node-fetch";
+
+// ⬇️ ESM-safe dynamic import of formidable
+const formidable = await import("formidable");
+const IncomingForm = formidable.default;
 
 const openaiApiKey = process.env.PM_GPT_Key;
 
@@ -18,33 +19,22 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const form = new IncomingForm({
-    maxFileSize: 20 * 1024 * 1024, // Optional safety
-  });
+  const form = new IncomingForm({ maxFileSize: 20 * 1024 * 1024 });
 
   form.parse(req, async (err, fields, files) => {
     if (err) {
-      console.error("Form parse error:", err);
-      return res.status(400).json({ error: "Form parsing failed" });
+      console.error("Form parsing error:", err);
+      return res.status(400).json({ error: "Failed to parse form data" });
     }
 
-    // ✅ Defensive check (Point 2)
     if (!files || !files.file || !files.file[0]) {
       console.error("No file received:", files);
       return res.status(400).json({ error: "No file uploaded" });
     }
 
     try {
-      // ✅ Correct file reference and buffer read (Point 3)
       const file = files.file[0];
-      console.log("Checking file at path:", file.filepath);
-      if (!fs.existsSync(file.filepath)) {
-        console.error("Uploaded file not found on server:", file.filepath);
-        return res.status(500).json({ error: "File not found on server" });
-      }
-
-const buffer = fs.readFileSync(file.filepath);
-
+      const buffer = fs.readFileSync(file.filepath);
 
       const formData = new FormData();
       formData.append("file", buffer, {
