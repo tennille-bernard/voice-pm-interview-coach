@@ -13,28 +13,40 @@ async function startRecording() {
     formData.append("model", "whisper-1");
 
     // Whisper to text
-    const transcript = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+    //const transcript = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+      //method: "POST",
+     //headers: {
+        //Authorization: "PM_GPT_Key"
+     //},
+      //body: formData
+    //}).then(res => res.json());
+    const transcriptRes = await fetch("/api/transcribe", {
       method: "POST",
-      headers: {
-        Authorization: "PM_GPT_Key"
-      },
       body: formData
-    }).then(res => res.json());
+    });
+    const transcript = await transcriptRes.json();
 
     document.getElementById("transcript").innerText = `Transcript: ${transcript.text}`;
 
     // GPT-4 reply
-    const chatResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+    //const chatResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+     //method: "POST",
+      //headers: {
+        //"Authorization": "Bearer PM_GPT_Key",
+        //"Content-Type": "application/json"
+      //},
+      //body: JSON.stringify({
+        //model: "gpt-4",
+        //messages: [{ role: "user", content: transcript.text }]
+      //})
+    //}).then(res => res.json());
+    const chatResponse = await fetch("/api/chat", {
       method: "POST",
-      headers: {
-        "Authorization": "Bearer PM_GPT_Key",
-        "Content-Type": "application/json"
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "gpt-4",
         messages: [{ role: "user", content: transcript.text }]
       })
-    }).then(res => res.json());
+    });
 
     const reply = chatResponse.choices[0].message.content;
     document.getElementById("gpt-response").innerText = `GPT: ${reply}`;
