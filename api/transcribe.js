@@ -9,7 +9,7 @@ export const config = {
 import fs from "fs";
 import FormData from "form-data";
 import fetch from "node-fetch";
-import formidable from "formidable"; // ✅ use default import here
+import { IncomingForm } from "formidable"; // ✅ now valid with 2.1.1
 
 const openaiApiKey = process.env.PM_GPT_Key;
 
@@ -18,7 +18,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const form = formidable({ maxFileSize: 20 * 1024 * 1024 }); // ✅ call as function, NOT constructor
+  const form = new IncomingForm({ maxFileSize: 20 * 1024 * 1024 });
 
   form.parse(req, async (err, fields, files) => {
     if (err) {
@@ -26,14 +26,14 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Failed to parse uploaded file" });
     }
 
-    if (!files || !files.file || !files.file[0]) {
+    if (!files || !files.file) {
       console.error("No file uploaded:", files);
       return res.status(400).json({ error: "No file uploaded" });
     }
 
     try {
-      const file = files.file[0];
-      const buffer = fs.readFileSync(file.filepath);
+      const file = files.file;
+      const buffer = fs.readFileSync(file.path || file.filepath);
 
       const formData = new FormData();
       formData.append("file", buffer, {
