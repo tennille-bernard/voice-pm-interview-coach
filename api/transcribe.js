@@ -9,10 +9,7 @@ export const config = {
 import fs from "fs";
 import FormData from "form-data";
 import fetch from "node-fetch";
-
-// Dynamically import formidable for ESM compatibility
-const formidableModule = await import("formidable");
-const IncomingForm = formidableModule.default;
+import formidable from "formidable"; // ✅ use default import here
 
 const openaiApiKey = process.env.PM_GPT_Key;
 
@@ -21,7 +18,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const form = new IncomingForm({ maxFileSize: 20 * 1024 * 1024 });
+  const form = formidable({ maxFileSize: 20 * 1024 * 1024 }); // ✅ call as function, NOT constructor
 
   form.parse(req, async (err, fields, files) => {
     if (err) {
