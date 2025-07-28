@@ -28,20 +28,20 @@ async function startRecording() {
     const transcript = await transcriptRes.json();
     document.getElementById("transcript").innerText = `Transcript: ${transcript.text}`;
 
+    // ✅ Validate the transcript before sending to GPT
+    if (!transcript.text || typeof transcript.text !== "string") {
+      console.error("Transcript is missing or invalid:", transcript);
+      alert("Transcript failed. Please try again.");
+      return;
+    }
+
     // Step 2: Send transcript to GPT via your /api/chat route
     const chatResponse = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-if (!transcript.text || typeof transcript.text !== "string") {
-  console.error("Transcript is missing or invalid:", transcript);
-  alert("Transcript failed. Please try again.");
-  return;
-}
-
-body: JSON.stringify({
-  messages: [{ role: "user", content: transcript.text }]
-});
-
+      body: JSON.stringify({
+        messages: [{ role: "user", content: transcript.text }]
+      })
     });
 
     if (!chatResponse.ok) {
