@@ -1,43 +1,63 @@
-import FormData from 'form-data';
-import fs from 'fs';
-import path from 'path';
+// /api/transcribe.js
 
 export const config = {
   api: {
-    bodyParser: false
-  }
+    bodyParser: false,
+  },
 };
 
+import formidable from "formidable";
+import fs from "fs";
+import FormData from "form-data";
+import fetch from "node-fetch";
+
+const openaiApiKey = process.env.PM_GPT_Key;
+
 export default async function handler(req, res) {
-  try {
-    const chunks = [];
-    for await (const chunk of req) {
-      chunks.push(chunk);
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  const form = new formidable.IncomingForm();
+
+  form.parse(req, async (err, fields, files) => {
+    if (err || !files.file) {
+      console.error("Error parsing form or missing file:", err);
+      return res.status(400).json({ error: "No audio file found" });
     }
 
-    const buffer = Buffer.concat(chunks);
+    const file = files.file[0];
 
-    // Save the uploaded audio to a temp file
-    const tempFilePath = path.join('/tmp', `audio-${Date.now()}.webm`);
-    fs.writeFileSync(tempFilePath, buffer);
+    try {
+      const buffer = fs.readFileSync(file.filepath);
 
-    const formData = new FormData();
-    formData.append('file', fs.createReadStream(tempFilePath));
-    formData.append('model', 'whisper-1');
+      const formData = new FormData();
+      formData.append("file", buffer, {
+        filename: "audio.webm",
+        contentType: "audio/webm",
+      });
+      formData.append("model", "whisper-1");
 
-    const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${process.env.PM_GPT_Key}`,
-        ...formData.getHeaders()
-      },
-      body: formData
-    });
+      const response = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${openaiApiKey}`,
+          ...formData.getHeaders(),
+        },
+        body: formData,
+      });
 
-    const data = await response.json();
-    res.status(200).json({ text: data.text || "" });
-  } catch (error) {
-    console.error('Error in /api/transcribe:', error);
-    res.status(500).json({ error: 'Transcription failed' });
-  }
+      const data = await response.json();
+
+      if (!data.text) {
+        console.error("OpenAI Whisper API returned no text:", data);
+        return res.status(500).json({ text: "" });
+      }
+
+      res.status(200).json({ text: data.text });
+    } catch (error) {
+      console.error("Transcription error:", error);
+      res.status(500).json({ error: "Server error" });
+    }
+  });
 }
