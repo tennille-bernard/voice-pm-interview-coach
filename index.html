@@ -3,21 +3,56 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>PM Interview Simulator – Voice Version</title>
-  <link rel="stylesheet" href="style.css" />
+  <title>PM Interview Coach (Voice)</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 1.5rem;
+      background-color: #f4f4f4;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 2rem;
+      border-radius: 0.5rem;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+    button {
+      padding: 0.75rem 1.25rem;
+      font-size: 1rem;
+      margin-right: 1rem;
+      margin-bottom: 1rem;
+      cursor: pointer;
+    }
+    #output {
+      margin-top: 2rem;
+    }
+    #question-count {
+      font-weight: bold;
+      font-size: 1.2rem;
+    }
+    #company-name {
+      color: #888;
+      font-size: 0.95rem;
+      margin-top: -0.5rem;
+    }
+  </style>
 </head>
 <body>
   <div class="container">
-    <h1>🎤 Product Manager Interview Coach</h1>
-
-    <p><strong>Company:</strong> <span id="company-name">Anthropic</span></p>
-    <p><strong>Question #<span id="question-number">1</span></strong></p>
+    <h1>Product Manager Interview Simulator (Voice)</h1>
+    <p>Click below to start a mock interview. Speak your answer out loud.</p>
 
     <button onclick="startRecording()">Start Speaking</button>
     <button onclick="resetInterview()">Reset Interview</button>
 
-    <div id="transcript" style="margin-top: 20px;"></div>
-    <div id="gpt-response" style="margin-top: 20px;"></div>
+    <div id="output">
+      <p id="question-count">Q<span id="question-number">1</span></p>
+      <p id="company-name">Company: Anthropic</p>
+      <p id="transcript"><strong>Transcript:</strong></p>
+      <p id="gpt-response"><strong>GPT:</strong></p>
+    </div>
   </div>
 
   <script src="script.js"></script>
