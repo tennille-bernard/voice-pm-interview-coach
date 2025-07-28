@@ -1,56 +1,67 @@
-// /api/chat.js
-import { OpenAI } from "openai";
+import OpenAI from "openai";
 
-const openai = new OpenAI({ apiKey: process.env.PM_GPT_Key });
+const openai = new OpenAI({
+  apiKey: process.env.PM_GPT_Key
+});
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { messages } = req.body;
-
   try {
-    const assistantId = process.env.ASSISTANT_ID;
+    const { messages, thread_id } = req.body;
 
-    // 1. Create a thread
-    const thread = await openai.beta.threads.create();
-
-    // 2. Add user message
-    const userInput = messages?.[0]?.content || "";
-    await openai.beta.threads.messages.create(thread.id, {
-      role: "user",
-      content: userInput,
-    });
-
-    // 3. Run assistant
-    const run = await openai.beta.threads.runs.create(thread.id, {
-      assistant_id: assistantId,
-    });
-
-    // 4. Poll until complete
-    let status = "in_progress";
-    let runResult;
-    while (status !== "completed" && status !== "failed") {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      runResult = await openai.beta.threads.runs.retrieve(thread.id, run.id);
-      status = runResult.status;
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+      return res.status(400).json({ error: "Invalid or missing messages" });
     }
 
-    if (status === "failed") {
-      console.error("Run failed", runResult);
+    // Step 1: Use existing thread_id or create a new thread
+    let threadId = thread_id;
+
+    if (!threadId) {
+      const thread = await openai.beta.threads.create();
+      threadId = thread.id;
+    }
+
+    // Step 2: Add new user message to the thread
+    await openai.beta.threads.messages.create(threadId, {
+      role: "user",
+      content: messages[messages.length - 1].content
+    });
+
+    // Step 3: Run the assistant
+    const run = await openai.beta.threads.runs.create(threadId, {
+      assistant_id: process.env.ASSISTANT_ID
+    });
+
+    // Step 4: Wait for the run to complete
+    let runStatus;
+    do {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      runStatus = await openai.beta.threads.runs.retrieve(threadId, run.id);
+    } while (runStatus.status !== "completed" && runStatus.status !== "failed");
+
+    if (runStatus.status === "failed") {
       return res.status(500).json({ error: "Assistant run failed" });
     }
 
-    // 5. Get assistant reply
-    const messagesRes = await openai.beta.threads.messages.list(thread.id);
-    const replyMessage = messagesRes.data.find(m => m.role === "assistant");
-    const reply = replyMessage?.content?.[0]?.text?.value || "No response.";
+    // Step 5: Get assistant messages
+    const messagesResponse = await openai.beta.threads.messages.list(threadId);
+    const assistantMessages = messagesResponse.data.filter(
+      msg => msg.role === "assistant"
+    );
 
-    return res.status(200).json({ reply });
+    const finalMessage = assistantMessages[0];
+    const reply = finalMessage.content[0].text.value;
 
-  } catch (err) {
-    console.error("Assistants API error:", err);
-    return res.status(500).json({ error: "Failed to query Assistant" });
+    return res.status(200).json({
+      reply,
+      thread_id: threadId
+    });
+
+  } catch (error) {
+    console.error("Assistants API error:", error);
+    return res.status(500).json({ error: error.message || "An unexpected error occurred" });
   }
 }
