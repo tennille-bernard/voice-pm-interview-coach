@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Verify Your Purchase</title>
+</head>
+<body>
+  <h2>🎟️ Enter to Access the PM Interview Simulator</h2>
+  <form id="verifyForm">
+    <label>Email or Gumroad Receipt ID:</label><br>
+    <input type="text" id="identifier" required /><br><br>
+    <button type="submit">Verify Access</button>
+  </form>
+
+  <p id="status"></p>
+
+  <script>
+    document.getElementById("verifyForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const identifier = document.getElementById("identifier").value;
+      const res = await fetch("/api/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identifier })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        window.location.href = "/interview-coach-28ae3.html";
+      } else {
+        document.getElementById("status").innerText = "❌ Sorry, we couldn’t verify your purchase.";
+      }
+    });
+  </script>
+</body>
+</html>
